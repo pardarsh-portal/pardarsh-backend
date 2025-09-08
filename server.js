@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const morgan = require('morgan');
 const connectDB = require('./src/config/database');
 const { errorHandler } = require('./src/utils/errorHandler');
 
@@ -15,9 +16,41 @@ connectDB();
 
 const app = express();
 
+// Custom logging middleware for detailed request/response tracking
+const requestLogger = (req, res, next) => {
+  const timestamp = new Date().toISOString();
+  console.log('\n' + '='.repeat(60));
+  console.log(`📥 INCOMING REQUEST [${timestamp}]`);
+  console.log(`🔗 ${req.method} ${req.originalUrl}`);
+  console.log(`🌐 Origin: ${req.get('origin') || 'N/A'}`);
+  console.log(`🔑 Auth: ${req.get('authorization') ? 'Bearer Token Present' : 'No Auth'}`);
+  
+  if (req.method !== 'GET' && Object.keys(req.body || {}).length > 0) {
+    console.log(`📦 Body:`, JSON.stringify(req.body, null, 2));
+  }
+  
+  // Log response
+  const originalSend = res.send;
+  res.send = function(data) {
+    console.log(`📤 RESPONSE [${res.statusCode}]:`);
+    try {
+      const responseData = JSON.parse(data);
+      console.log(JSON.stringify(responseData, null, 2));
+    } catch(e) {
+      console.log(data);
+    }
+    console.log('='.repeat(60) + '\n');
+    originalSend.call(this, data);
+  };
+  
+  next();
+};
+
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(morgan('🚀 :method :url :status :response-time ms - :res[content-length]'));
+app.use(requestLogger);
 
 // Mount routes
 app.use('/api/auth', authRoutes);
