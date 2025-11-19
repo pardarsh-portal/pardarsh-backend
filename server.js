@@ -52,6 +52,16 @@ app.use(express.json());
 app.use(morgan('🚀 :method :url :status :response-time ms - :res[content-length]'));
 app.use(requestLogger);
 
+// Health check route
+app.get('/', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Pardarsh Backend Service is running',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0'
+  });
+});
+
 // Mount routes
 app.use('/api/auth', authRoutes);
 app.use('/api/projects', require('./src/routes/projects'));
